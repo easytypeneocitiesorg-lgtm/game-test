@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>game test</title>
+  <title>Cube Encounter Game</title>
   <style>
     body { margin:0; background:black; color:white; font-family:sans-serif; }
     canvas { display:block; margin:0 auto; background:black; }
@@ -42,12 +42,23 @@
       top:10px;
       left:10px;
     }
+    #cheatBtn {
+      position:absolute;
+      top:10px;
+      right:10px;
+      width:40px;
+      height:40px;
+      opacity:0; /* invisible */
+      cursor:default; /* cursor doesn’t change */
+    }
   </style>
 </head>
 <body>
   <canvas id="gameCanvas" width="600" height="400"></canvas>
   <!-- Volume slider -->
   <input id="volumeControl" type="range" min="0" max="1" step="0.01" value="0.25">
+  <!-- Invisible cheat button -->
+  <button id="cheatBtn"></button>
   
   <div id="ui" style="display:none;">
     <div class="healthRow">
@@ -64,14 +75,16 @@
     <button id="healBtn">Heal</button>
     <button id="restartBtn" style="display:none;">Restart</button>
     <p id="message"></p>
+    <p id="healCount"></p>
   </div>
 
 <script>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 const volumeSlider = document.getElementById("volumeControl");
+const cheatBtn = document.getElementById("cheatBtn");
 
-let player, enemyCube, keys, inEncounter, enemy, healUses, cooldown;
+let player, enemyCube, keys, inEncounter, enemy, healUses, cooldown, infiniteHeals;
 
 function initGame() {
   player = { x:50, y:50, size:30, color:"blue", health:36, maxHealth:50 };
@@ -80,16 +93,23 @@ function initGame() {
   inEncounter = false;
   enemy = null;
   healUses = 3;
+  infiniteHeals = false;
   cooldown = false;
   document.getElementById("ui").style.display = "none";
   document.getElementById("attackBtn").disabled = false;
   document.getElementById("healBtn").disabled = false;
   document.getElementById("restartBtn").style.display = "none";
+  updateHealCount();
 }
 initGame();
 
 document.addEventListener("keydown", e => keys[e.key] = true);
 document.addEventListener("keyup", e => keys[e.key] = false);
+
+cheatBtn.addEventListener("click", () => {
+  infiniteHeals = true;
+  updateHealCount();
+});
 
 function update() {
   if (!inEncounter) {
@@ -123,112 +143,3 @@ function gameLoop() {
   requestAnimationFrame(gameLoop);
 }
 gameLoop();
-
-function startEncounter() {
-  inEncounter = true;
-  enemy = { health: Math.floor(Math.random()*36)+20 }; // 20–55
-  document.getElementById("ui").style.display = "block";
-  updateUI("Encounter started!");
-}
-
-function updateUI(msg="") {
-  document.getElementById("playerHealth").textContent = "Player HP: " + player.health;
-  document.getElementById("enemyHealth").textContent = "Enemy HP: " + enemy.health;
-  document.getElementById("message").textContent = msg;
-}
-
-function playSound(freq) {
-  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  const oscillator = audioCtx.createOscillator();
-  const gainNode = audioCtx.createGain();
-  oscillator.type = "square";
-  oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
-  gainNode.gain.value = parseFloat(volumeSlider.value); // use slider value
-  oscillator.connect(gainNode);
-  gainNode.connect(audioCtx.destination);
-  oscillator.start();
-  oscillator.stop(audioCtx.currentTime + 0.2);
-}
-
-function showFloatText(text, type, target) {
-  const floatLayer = document.getElementById(target+"FloatLayer");
-  const el = document.createElement("div");
-  el.className = "floatText " + type;
-  el.textContent = text;
-  floatLayer.appendChild(el);
-  setTimeout(()=>floatLayer.removeChild(el),1500);
-}
-
-function setCooldown(state) {
-  cooldown = state;
-  document.getElementById("attackBtn").disabled = state;
-  document.getElementById("healBtn").disabled = state;
-}
-
-document.getElementById("attackBtn").onclick = () => {
-  if (cooldown) return;
-  setCooldown(true);
-  let dmg = Math.floor(Math.random()*8)+5; // 5–12 damage
-  updateUI("You attacked!");
-  enemy.health -= dmg;
-  showFloatText("-"+dmg, "enemyDamage", "enemy");
-  playSound(660); // attack tone
-  updateUI("You attacked!");
-  if (enemy.health <= 0) {
-    endEncounter(false);
-  } else {
-    enemyTurn();
-  }
-};
-
-document.getElementById("healBtn").onclick = () => {
-  if (cooldown) return;
-  if (healUses > 0) {
-    setCooldown(true);
-    let heal = 10; // fixed heal
-    updateUI("You healed!");
-    player.health = Math.min(player.maxHealth, player.health+heal);
-    healUses--;
-    showFloatText("+"+heal, "playerHeal", "player");
-    playSound(330); // heal tone
-    updateUI("You healed!");
-    enemyTurn();
-  } else {
-    updateUI("No heals left!");
-  }
-};
-
-function enemyTurn() {
-  setTimeout(()=>{
-    let dmg = Math.floor(Math.random()*8)+4; // 4–11
-    updateUI("Enemy attacked!");
-    player.health -= dmg;
-    showFloatText("-"+dmg, "playerDamage", "player");
-    playSound(440); // enemy tone
-    if (player.health <= 0) {
-      endEncounter(true);
-    } else {
-      updateUI("Enemy attacked!");
-      setCooldown(false); // unlock only after enemy damage applied
-    }
-  },2000);
-}
-
-function endEncounter(playerDefeated=false) {
-  if (playerDefeated) {
-    updateUI("Game Over!");
-    document.getElementById("attackBtn").disabled = true;
-    document.getElementById("healBtn").disabled = true;
-    document.getElementById("restartBtn").style.display = "inline-block";
-  } else {
-    updateUI("Victory!");
-    setCooldown(false); // unlock immediately on victory
-  }
-}
-
-document.getElementById("restartBtn").onclick = () => {
-  initGame();
-};
-</script>
-</body>
-</html>
