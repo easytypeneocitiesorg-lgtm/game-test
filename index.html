@@ -37,10 +37,18 @@
       from { top:-20px; opacity:1; }
       to { top:-50px; opacity:0; }
     }
+    #volumeControl {
+      position:absolute;
+      top:10px;
+      left:10px;
+    }
   </style>
 </head>
 <body>
   <canvas id="gameCanvas" width="600" height="400"></canvas>
+  <!-- Volume slider -->
+  <input id="volumeControl" type="range" min="0" max="1" step="0.01" value="0.25">
+  
   <div id="ui" style="display:none;">
     <div class="healthRow">
       <div class="healthBox">
@@ -61,6 +69,7 @@
 <script>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+const volumeSlider = document.getElementById("volumeControl");
 
 let player, enemyCube, keys, inEncounter, enemy, healUses, cooldown;
 
@@ -131,9 +140,12 @@ function updateUI(msg="") {
 function playSound(freq) {
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   const oscillator = audioCtx.createOscillator();
+  const gainNode = audioCtx.createGain();
   oscillator.type = "square";
   oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
-  oscillator.connect(audioCtx.destination);
+  gainNode.gain.value = parseFloat(volumeSlider.value); // use slider value
+  oscillator.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
   oscillator.start();
   oscillator.stop(audioCtx.currentTime + 0.2);
 }
