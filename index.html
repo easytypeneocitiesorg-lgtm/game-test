@@ -140,13 +140,12 @@ document.getElementById("attackBtn").onclick = () => {
   playSound();
   setTimeout(()=>{
     enemy.health -= dmg;
+    updateUI("You attacked!");
     if (enemy.health <= 0) {
       endEncounter(false);
     } else {
-      enemyTurn();
+      enemyTurn(); // enemy only starts after damage applied
     }
-    updateUI("You attacked!");
-    if (enemy.health > 0) setCooldown(false);
   },1500);
 };
 
@@ -161,8 +160,7 @@ document.getElementById("healBtn").onclick = () => {
       player.health = Math.min(player.maxHealth, player.health+heal);
       healUses--;
       updateUI("You healed!");
-      enemyTurn();
-      if (player.health > 0) setCooldown(false);
+      enemyTurn(); // enemy only starts after heal applied
     },1500);
   } else {
     updateUI("No heals left!");
@@ -170,7 +168,6 @@ document.getElementById("healBtn").onclick = () => {
 };
 
 function enemyTurn() {
-  setCooldown(true);
   setTimeout(()=>{
     let dmg = Math.floor(Math.random()*8)+4; // 4–11
     showFloatText("-"+dmg);
@@ -179,9 +176,10 @@ function enemyTurn() {
       player.health -= dmg;
       if (player.health <= 0) {
         endEncounter(true);
+      } else {
+        updateUI("Enemy attacked!");
+        setCooldown(false); // unlock only after enemy damage applied
       }
-      updateUI("Enemy attacked!");
-      if (player.health > 0) setCooldown(false);
     },1500);
   },2000);
 }
@@ -194,6 +192,7 @@ function endEncounter(playerDefeated=false) {
     document.getElementById("restartBtn").style.display = "inline-block";
   } else {
     updateUI("Victory!");
+    setCooldown(false); // unlock immediately on victory
   }
 }
 
