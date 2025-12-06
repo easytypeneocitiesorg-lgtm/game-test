@@ -158,17 +158,15 @@ document.getElementById("attackBtn").onclick = () => {
   setCooldown(true);
   let dmg = Math.floor(Math.random()*5)+3; // 3–7
   updateUI("You attacked!");
-  setTimeout(()=>{
-    enemy.health -= dmg;
-    showFloatText("-"+dmg, "enemyDamage", "enemy");
-    playSound(660); // attack tone
-    updateUI("You attacked!");
-    if (enemy.health <= 0) {
-      endEncounter(false);
-    } else {
-      enemyTurn();
-    }
-  },0); // immediate with health change
+  enemy.health -= dmg;
+  showFloatText("-"+dmg, "enemyDamage", "enemy");
+  playSound(660); // attack tone
+  updateUI("You attacked!");
+  if (enemy.health <= 0) {
+    endEncounter(false);
+  } else {
+    enemyTurn();
+  }
 };
 
 document.getElementById("healBtn").onclick = () => {
@@ -177,13 +175,12 @@ document.getElementById("healBtn").onclick = () => {
     setCooldown(true);
     let heal = 10; // fixed heal
     updateUI("You healed!");
-    setTimeout(()=>{
-      player.health = Math.min(player.maxHealth, player.health+heal);
-      showFloatText("+"+heal, "playerHeal", "player");
-      playSound(330); // heal tone
-      healUses--;
-      enemyTurn();
-    },0);
+    player.health = Math.min(player.maxHealth, player.health+heal);
+    healUses--;
+    showFloatText("+"+heal, "playerHeal", "player");
+    playSound(330); // heal tone
+    updateUI("You healed!");
+    enemyTurn();
   } else {
     updateUI("No heals left!");
   }
@@ -193,17 +190,15 @@ function enemyTurn() {
   setTimeout(()=>{
     let dmg = Math.floor(Math.random()*8)+4; // 4–11
     updateUI("Enemy attacked!");
-    setTimeout(()=>{
-      player.health -= dmg;
-      showFloatText("-"+dmg, "playerDamage", "player");
-      playSound(440); // enemy tone
-      if (player.health <= 0) {
-        endEncounter(true);
-      } else {
-        updateUI("Enemy attacked!");
-        setCooldown(false); // unlock only after enemy damage applied
-      }
-    },0);
+    player.health -= dmg;
+    showFloatText("-"+dmg, "playerDamage", "player");
+    playSound(440); // enemy tone
+    if (player.health <= 0) {
+      endEncounter(true);
+    } else {
+      updateUI("Enemy attacked!");
+      setCooldown(false); // unlock only after enemy damage applied
+    }
   },2000);
 }
 
