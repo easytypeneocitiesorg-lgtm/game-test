@@ -15,10 +15,12 @@
     }
     .floatText {
       position: relative;
-      color: red;
       font-weight: bold;
       animation: floatUp 1.5s ease-out forwards;
     }
+    .enemyDamage { color: yellow; }
+    .playerDamage { color: red; }
+    .playerHeal { color: green; }
     @keyframes floatUp {
       from { top:0; opacity:1; }
       to { top:-30px; opacity:0; }
@@ -117,10 +119,10 @@ function playSound() {
   oscillator.stop(audioCtx.currentTime + 0.2);
 }
 
-function showFloatText(text) {
+function showFloatText(text, type) {
   const floatLayer = document.getElementById("floatLayer");
   const el = document.createElement("div");
-  el.className = "floatText";
+  el.className = "floatText " + type;
   el.textContent = text;
   floatLayer.appendChild(el);
   setTimeout(()=>floatLayer.removeChild(el),1500);
@@ -136,7 +138,7 @@ document.getElementById("attackBtn").onclick = () => {
   if (cooldown) return;
   setCooldown(true);
   let dmg = Math.floor(Math.random()*5)+3; // 3–7
-  showFloatText("-"+dmg);
+  showFloatText("-"+dmg, "enemyDamage");
   playSound();
   setTimeout(()=>{
     enemy.health -= dmg;
@@ -144,7 +146,7 @@ document.getElementById("attackBtn").onclick = () => {
     if (enemy.health <= 0) {
       endEncounter(false);
     } else {
-      enemyTurn(); // enemy only starts after damage applied
+      enemyTurn();
     }
   },1500);
 };
@@ -153,14 +155,14 @@ document.getElementById("healBtn").onclick = () => {
   if (cooldown) return;
   if (healUses > 0) {
     setCooldown(true);
-    let heal = Math.floor(Math.random()*6)+5; // 5–10
-    showFloatText("+"+heal);
+    let heal = 10; // fixed heal
+    showFloatText("+"+heal, "playerHeal");
     playSound();
     setTimeout(()=>{
       player.health = Math.min(player.maxHealth, player.health+heal);
       healUses--;
       updateUI("You healed!");
-      enemyTurn(); // enemy only starts after heal applied
+      enemyTurn();
     },1500);
   } else {
     updateUI("No heals left!");
@@ -170,7 +172,7 @@ document.getElementById("healBtn").onclick = () => {
 function enemyTurn() {
   setTimeout(()=>{
     let dmg = Math.floor(Math.random()*8)+4; // 4–11
-    showFloatText("-"+dmg);
+    showFloatText("-"+dmg, "playerDamage");
     playSound();
     setTimeout(()=>{
       player.health -= dmg;
