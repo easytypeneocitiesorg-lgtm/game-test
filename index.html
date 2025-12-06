@@ -156,7 +156,7 @@ function setCooldown(state) {
 document.getElementById("attackBtn").onclick = () => {
   if (cooldown) return;
   setCooldown(true);
-  let dmg = Math.floor(Math.random()*5)+3; // 3–7
+  let dmg = Math.floor(Math.random()*8)+5; // 5–12 damage
   updateUI("You attacked!");
   enemy.health -= dmg;
   showFloatText("-"+dmg, "enemyDamage", "enemy");
