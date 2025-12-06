@@ -8,6 +8,16 @@
     canvas { display:block; margin:0 auto; background:black; }
     #ui { text-align:center; margin-top:10px; }
     button { margin:5px; padding:10px 20px; font-size:16px; }
+    .floatText {
+      position: relative;
+      color: red;
+      font-weight: bold;
+      animation: floatUp 1.5s ease-out forwards;
+    }
+    @keyframes floatUp {
+      from { top:0; opacity:1; }
+      to { top:-30px; opacity:0; }
+    }
   </style>
 </head>
 <body>
@@ -17,19 +27,30 @@
     <p id="enemyHealth"></p>
     <button id="attackBtn">Attack</button>
     <button id="healBtn">Heal</button>
+    <button id="restartBtn" style="display:none;">Restart</button>
     <p id="message"></p>
+    <div id="floatLayer"></div>
   </div>
 
 <script>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-let player = { x:50, y:50, size:30, color:"blue", health:36, maxHealth:50 };
-let enemyCube = { x: Math.random()*550, y: Math.random()*350, size:30, color:"red" };
-let keys = {};
-let inEncounter = false;
-let enemy = null;
-let healUses = 3;
+let player, enemyCube, keys, inEncounter, enemy, healUses;
+
+function initGame() {
+  player = { x:50, y:50, size:30, color:"blue", health:36, maxHealth:50 };
+  enemyCube = { x: Math.random()*550, y: Math.random()*350, size:30, color:"red" };
+  keys = {};
+  inEncounter = false;
+  enemy = null;
+  healUses = 3;
+  document.getElementById("ui").style.display = "none";
+  document.getElementById("attackBtn").disabled = false;
+  document.getElementById("healBtn").disabled = false;
+  document.getElementById("restartBtn").style.display = "none";
+}
+initGame();
 
 document.addEventListener("keydown", e => keys[e.key] = true);
 document.addEventListener("keyup", e => keys[e.key] = false);
@@ -41,7 +62,6 @@ function update() {
     if (keys["ArrowLeft"] || keys["a"]) player.x -= 3;
     if (keys["ArrowRight"] || keys["d"]) player.x += 3;
 
-    // Collision check
     if (player.x < enemyCube.x + enemyCube.size &&
         player.x + player.size > enemyCube.x &&
         player.y < enemyCube.y + enemyCube.size &&
@@ -54,10 +74,8 @@ function update() {
 function draw() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
   if (!inEncounter) {
-    // Draw player
     ctx.fillStyle = player.color;
     ctx.fillRect(player.x, player.y, player.size, player.size);
-    // Draw enemy cube
     ctx.fillStyle = enemyCube.color;
     ctx.fillRect(enemyCube.x, enemyCube.y, enemyCube.size, enemyCube.size);
   }
@@ -70,10 +88,9 @@ function gameLoop() {
 }
 gameLoop();
 
-// Encounter logic
 function startEncounter() {
   inEncounter = true;
-  enemy = { health: Math.floor(Math.random()*56)+20 }; // 20–75
+  enemy = { health: Math.floor(Math.random()*36)+20 }; // 20–55
   document.getElementById("ui").style.display = "block";
   updateUI("Encounter started!");
 }
@@ -84,39 +101,69 @@ function updateUI(msg="") {
   document.getElementById("message").textContent = msg;
 }
 
+function playSound() {
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const oscillator = audioCtx.createOscillator();
+  oscillator.type = "square";
+  oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
+  oscillator.connect(audioCtx.destination);
+  oscillator.start();
+  oscillator.stop(audioCtx.currentTime + 0.2);
+}
+
+function showFloatText(text, targetId) {
+  const floatLayer = document.getElementById("floatLayer");
+  const el = document.createElement("div");
+  el.className = "floatText";
+  el.textContent = text;
+  floatLayer.appendChild(el);
+  setTimeout(()=>floatLayer.removeChild(el),1500);
+}
+
 document.getElementById("attackBtn").onclick = () => {
   let dmg = Math.floor(Math.random()*5)+3; // 3–7
-  enemy.health -= dmg;
-  let msg = "You hit enemy for " + dmg + "!";
-  if (enemy.health <= 0) {
-    msg += " Enemy defeated!";
-    endEncounter();
-  } else {
-    enemyTurn(msg);
-  }
+  showFloatText("-"+dmg, "enemyHealth");
+  playSound();
+  setTimeout(()=>{
+    enemy.health -= dmg;
+    if (enemy.health <= 0) {
+      endEncounter(false);
+    } else {
+      enemyTurn();
+    }
+    updateUI("You attacked!");
+  },1500);
 };
 
 document.getElementById("healBtn").onclick = () => {
   if (healUses > 0) {
     let heal = Math.floor(Math.random()*6)+5; // 5–10
-    player.health = Math.min(player.maxHealth, player.health+heal);
-    healUses--;
-    let msg = "You healed " + heal + " HP ("+healUses+" heals left).";
-    enemyTurn(msg);
+    showFloatText("+"+heal, "playerHealth");
+    playSound();
+    setTimeout(()=>{
+      player.health = Math.min(player.maxHealth, player.health+heal);
+      healUses--;
+      updateUI("You healed!");
+      enemyTurn();
+    },1500);
   } else {
     updateUI("No heals left!");
   }
 };
 
-function enemyTurn(prevMsg) {
-  let dmg = Math.floor(Math.random()*8)+4; // 4–11
-  player.health -= dmg;
-  let msg = prevMsg + " Enemy hits you for " + dmg + "!";
-  if (player.health <= 0) {
-    msg += " You were defeated!";
-    endEncounter(true);
-  }
-  updateUI(msg);
+function enemyTurn() {
+  setTimeout(()=>{
+    let dmg = Math.floor(Math.random()*8)+4; // 4–11
+    showFloatText("-"+dmg, "playerHealth");
+    playSound();
+    setTimeout(()=>{
+      player.health -= dmg;
+      if (player.health <= 0) {
+        endEncounter(true);
+      }
+      updateUI("Enemy attacked!");
+    },1500);
+  },2000);
 }
 
 function endEncounter(playerDefeated=false) {
@@ -124,10 +171,15 @@ function endEncounter(playerDefeated=false) {
     updateUI("Game Over!");
     document.getElementById("attackBtn").disabled = true;
     document.getElementById("healBtn").disabled = true;
+    document.getElementById("restartBtn").style.display = "inline-block";
   } else {
     updateUI("Victory!");
   }
 }
+
+document.getElementById("restartBtn").onclick = () => {
+  initGame();
+};
 </script>
 </body>
 </html>
