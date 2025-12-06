@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cube Encounter Game</title>
+  <style>
+    body { margin:0; background:black; color:white; font-family:sans-serif; }
+    canvas { display:block; margin:0 auto; background:black; }
+    #ui { text-align:center; margin-top:10px; }
+    button { margin:5px; padding:10px 20px; font-size:16px; }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="600" height="400"></canvas>
+  <div id="ui" style="display:none;">
+    <p id="playerHealth"></p>
+    <p id="enemyHealth"></p>
+    <button id="attackBtn">Attack</button>
+    <button id="healBtn">Heal</button>
+    <p id="message"></p>
+  </div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let player = { x:50, y:50, size:30, color:"blue", health:36, maxHealth:50 };
+let enemyCube = { x: Math.random()*550, y: Math.random()*350, size:30, color:"red" };
+let keys = {};
+let inEncounter = false;
+let enemy = null;
+let healUses = 3;
+
+document.addEventListener("keydown", e => keys[e.key] = true);
+document.addEventListener("keyup", e => keys[e.key] = false);
+
+function update() {
+  if (!inEncounter) {
+    if (keys["ArrowUp"] || keys["w"]) player.y -= 3;
+    if (keys["ArrowDown"] || keys["s"]) player.y += 3;
+    if (keys["ArrowLeft"] || keys["a"]) player.x -= 3;
+    if (keys["ArrowRight"] || keys["d"]) player.x += 3;
+
+    // Collision check
+    if (player.x < enemyCube.x + enemyCube.size &&
+        player.x + player.size > enemyCube.x &&
+        player.y < enemyCube.y + enemyCube.size &&
+        player.y + player.size > enemyCube.y) {
+          startEncounter();
+    }
+  }
+}
+
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if (!inEncounter) {
+    // Draw player
+    ctx.fillStyle = player.color;
+    ctx.fillRect(player.x, player.y, player.size, player.size);
+    // Draw enemy cube
+    ctx.fillStyle = enemyCube.color;
+    ctx.fillRect(enemyCube.x, enemyCube.y, enemyCube.size, enemyCube.size);
+  }
+}
+
+function gameLoop() {
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+gameLoop();
+
+// Encounter logic
+function startEncounter() {
+  inEncounter = true;
+  enemy = { health: Math.floor(Math.random()*56)+20 }; // 20–75
+  document.getElementById("ui").style.display = "block";
+  updateUI("Encounter started!");
+}
+
+function updateUI(msg="") {
+  document.getElementById("playerHealth").textContent = "Player HP: " + player.health;
+  document.getElementById("enemyHealth").textContent = "Enemy HP: " + enemy.health;
+  document.getElementById("message").textContent = msg;
+}
+
+document.getElementById("attackBtn").onclick = () => {
+  let dmg = Math.floor(Math.random()*5)+3; // 3–7
+  enemy.health -= dmg;
+  let msg = "You hit enemy for " + dmg + "!";
+  if (enemy.health <= 0) {
+    msg += " Enemy defeated!";
+    endEncounter();
+  } else {
+    enemyTurn(msg);
+  }
+};
+
+document.getElementById("healBtn").onclick = () => {
+  if (healUses > 0) {
+    let heal = Math.floor(Math.random()*6)+5; // 5–10
+    player.health = Math.min(player.maxHealth, player.health+heal);
+    healUses--;
+    let msg = "You healed " + heal + " HP ("+healUses+" heals left).";
+    enemyTurn(msg);
+  } else {
+    updateUI("No heals left!");
+  }
+};
+
+function enemyTurn(prevMsg) {
+  let dmg = Math.floor(Math.random()*8)+4; // 4–11
+  player.health -= dmg;
+  let msg = prevMsg + " Enemy hits you for " + dmg + "!";
+  if (player.health <= 0) {
+    msg += " You were defeated!";
+    endEncounter(true);
+  }
+  updateUI(msg);
+}
+
+function endEncounter(playerDefeated=false) {
+  if (playerDefeated) {
+    updateUI("Game Over!");
+    document.getElementById("attackBtn").disabled = true;
+    document.getElementById("healBtn").disabled = true;
+  } else {
+    updateUI("Victory!");
+  }
+}
+</script>
+</body>
+</html>
