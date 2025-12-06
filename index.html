@@ -8,6 +8,11 @@
     canvas { display:block; margin:0 auto; background:black; }
     #ui { text-align:center; margin-top:10px; }
     button { margin:5px; padding:10px 20px; font-size:16px; }
+    button:disabled {
+      background-color: #555;
+      color: #aaa;
+      cursor: not-allowed;
+    }
     .floatText {
       position: relative;
       color: red;
@@ -36,7 +41,7 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-let player, enemyCube, keys, inEncounter, enemy, healUses;
+let player, enemyCube, keys, inEncounter, enemy, healUses, cooldown;
 
 function initGame() {
   player = { x:50, y:50, size:30, color:"blue", health:36, maxHealth:50 };
@@ -45,6 +50,7 @@ function initGame() {
   inEncounter = false;
   enemy = null;
   healUses = 3;
+  cooldown = false;
   document.getElementById("ui").style.display = "none";
   document.getElementById("attackBtn").disabled = false;
   document.getElementById("healBtn").disabled = false;
@@ -111,7 +117,7 @@ function playSound() {
   oscillator.stop(audioCtx.currentTime + 0.2);
 }
 
-function showFloatText(text, targetId) {
+function showFloatText(text) {
   const floatLayer = document.getElementById("floatLayer");
   const el = document.createElement("div");
   el.className = "floatText";
@@ -120,9 +126,17 @@ function showFloatText(text, targetId) {
   setTimeout(()=>floatLayer.removeChild(el),1500);
 }
 
+function setCooldown(state) {
+  cooldown = state;
+  document.getElementById("attackBtn").disabled = state;
+  document.getElementById("healBtn").disabled = state;
+}
+
 document.getElementById("attackBtn").onclick = () => {
+  if (cooldown) return;
+  setCooldown(true);
   let dmg = Math.floor(Math.random()*5)+3; // 3–7
-  showFloatText("-"+dmg, "enemyHealth");
+  showFloatText("-"+dmg);
   playSound();
   setTimeout(()=>{
     enemy.health -= dmg;
@@ -132,19 +146,23 @@ document.getElementById("attackBtn").onclick = () => {
       enemyTurn();
     }
     updateUI("You attacked!");
+    if (enemy.health > 0) setCooldown(false);
   },1500);
 };
 
 document.getElementById("healBtn").onclick = () => {
+  if (cooldown) return;
   if (healUses > 0) {
+    setCooldown(true);
     let heal = Math.floor(Math.random()*6)+5; // 5–10
-    showFloatText("+"+heal, "playerHealth");
+    showFloatText("+"+heal);
     playSound();
     setTimeout(()=>{
       player.health = Math.min(player.maxHealth, player.health+heal);
       healUses--;
       updateUI("You healed!");
       enemyTurn();
+      if (player.health > 0) setCooldown(false);
     },1500);
   } else {
     updateUI("No heals left!");
@@ -152,9 +170,10 @@ document.getElementById("healBtn").onclick = () => {
 };
 
 function enemyTurn() {
+  setCooldown(true);
   setTimeout(()=>{
     let dmg = Math.floor(Math.random()*8)+4; // 4–11
-    showFloatText("-"+dmg, "playerHealth");
+    showFloatText("-"+dmg);
     playSound();
     setTimeout(()=>{
       player.health -= dmg;
@@ -162,6 +181,7 @@ function enemyTurn() {
         endEncounter(true);
       }
       updateUI("Enemy attacked!");
+      if (player.health > 0) setCooldown(false);
     },1500);
   },2000);
 }
