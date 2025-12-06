@@ -2,41 +2,60 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Cube Encounter Game</title>
+  <title>game test</title>
   <style>
     body { margin:0; background:black; color:white; font-family:sans-serif; }
     canvas { display:block; margin:0 auto; background:black; }
     #ui { text-align:center; margin-top:10px; }
+    .healthRow {
+      display:flex;
+      justify-content:space-around;
+      margin-bottom:10px;
+    }
+    .healthBox {
+      position:relative;
+      width:200px;
+    }
+    .floatText {
+      position:absolute;
+      top:-20px;
+      left:50%;
+      transform:translateX(-50%);
+      font-weight:bold;
+      animation: floatUp 1.5s ease-out forwards;
+    }
+    .enemyDamage { color: yellow; }
+    .playerDamage { color: red; }
+    .playerHeal { color: green; }
     button { margin:5px; padding:10px 20px; font-size:16px; }
     button:disabled {
       background-color: #555;
       color: #aaa;
       cursor: not-allowed;
     }
-    .floatText {
-      position: relative;
-      font-weight: bold;
-      animation: floatUp 1.5s ease-out forwards;
-    }
-    .enemyDamage { color: yellow; }
-    .playerDamage { color: red; }
-    .playerHeal { color: green; }
     @keyframes floatUp {
-      from { top:0; opacity:1; }
-      to { top:-30px; opacity:0; }
+      from { top:-20px; opacity:1; }
+      to { top:-50px; opacity:0; }
     }
   </style>
 </head>
 <body>
   <canvas id="gameCanvas" width="600" height="400"></canvas>
   <div id="ui" style="display:none;">
-    <p id="playerHealth"></p>
-    <p id="enemyHealth"></p>
+    <div class="healthRow">
+      <div class="healthBox">
+        <p id="playerHealth"></p>
+        <div id="playerFloatLayer"></div>
+      </div>
+      <div class="healthBox">
+        <p id="enemyHealth"></p>
+        <div id="enemyFloatLayer"></div>
+      </div>
+    </div>
     <button id="attackBtn">Attack</button>
     <button id="healBtn">Heal</button>
     <button id="restartBtn" style="display:none;">Restart</button>
     <p id="message"></p>
-    <div id="floatLayer"></div>
   </div>
 
 <script>
@@ -119,8 +138,8 @@ function playSound() {
   oscillator.stop(audioCtx.currentTime + 0.2);
 }
 
-function showFloatText(text, type) {
-  const floatLayer = document.getElementById("floatLayer");
+function showFloatText(text, type, target) {
+  const floatLayer = document.getElementById(target+"FloatLayer");
   const el = document.createElement("div");
   el.className = "floatText " + type;
   el.textContent = text;
@@ -138,16 +157,17 @@ document.getElementById("attackBtn").onclick = () => {
   if (cooldown) return;
   setCooldown(true);
   let dmg = Math.floor(Math.random()*5)+3; // 3–7
-  showFloatText("-"+dmg, "enemyDamage");
+  updateUI("You attacked!");
+  showFloatText("-"+dmg, "enemyDamage", "enemy");
   playSound();
   setTimeout(()=>{
     enemy.health -= dmg;
-    updateUI("You attacked!");
     if (enemy.health <= 0) {
       endEncounter(false);
     } else {
       enemyTurn();
     }
+    updateUI("You attacked!");
   },1500);
 };
 
@@ -156,12 +176,12 @@ document.getElementById("healBtn").onclick = () => {
   if (healUses > 0) {
     setCooldown(true);
     let heal = 10; // fixed heal
-    showFloatText("+"+heal, "playerHeal");
+    updateUI("You healed!");
+    showFloatText("+"+heal, "playerHeal", "player");
     playSound();
     setTimeout(()=>{
       player.health = Math.min(player.maxHealth, player.health+heal);
       healUses--;
-      updateUI("You healed!");
       enemyTurn();
     },1500);
   } else {
@@ -172,7 +192,8 @@ document.getElementById("healBtn").onclick = () => {
 function enemyTurn() {
   setTimeout(()=>{
     let dmg = Math.floor(Math.random()*8)+4; // 4–11
-    showFloatText("-"+dmg, "playerDamage");
+    updateUI("Enemy attacked!");
+    showFloatText("-"+dmg, "playerDamage", "player");
     playSound();
     setTimeout(()=>{
       player.health -= dmg;
